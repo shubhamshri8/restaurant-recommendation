@@ -1,5 +1,6 @@
 # Generated artifacts
-data/
+# data/
+!data/restaurants.parquet
 
 # Python
 __pycache__/
