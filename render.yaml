@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: restaurant-recommendation-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.phase2.api.app:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: RESTAURANTS_DATA_PATH
+        value: data/restaurants.parquet
+      - key: GROQ_API_KEY
+        sync: false # Set this in the Render dashboard for security
