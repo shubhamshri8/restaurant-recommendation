@@ -3,11 +3,15 @@ import pandas as pd
 import numpy as np
 import os
 import time
+from pathlib import Path
 from dotenv import load_dotenv
 from groq import Groq
 
 # Import our core logic
-from src.phase1.retrieval.recommend import get_recommendations
+from src.phase1.retrieval.recommend import UserPrefs, shortlist_from_df
+from src.phase2.llm.client import load_llm_config
+from src.phase2.llm.rerank import rerank_with_llm
+from src.phase2.api.response_builder import deterministic_results
 
 # --- Configuration & Styling ---
 st.set_page_config(
@@ -68,16 +72,26 @@ st.markdown("""
 # --- Initialization ---
 load_dotenv()
 
+# Data Path
+DATA_PATH = Path("data/restaurants.parquet")
+
+@st.cache_data
+def get_df():
+    if not DATA_PATH.exists():
+        st.error(f"Data file not found at {DATA_PATH}")
+        return None
+    return pd.read_parquet(DATA_PATH)
+
 # Handle API Key from secrets or env
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key and "GROQ_API_KEY" in st.secrets:
     api_key = st.secrets["GROQ_API_KEY"]
+    # Ensure it's in env for Groq client if needed elsewhere
+    os.environ["GROQ_API_KEY"] = api_key
 
 if not api_key:
     st.error("Missing GROQ_API_KEY. Please set it in your environment variables or Streamlit secrets.")
     st.stop()
-
-client = Groq(api_key=api_key)
 
 # Constants (mirrored from app.py)
 LOCALITIES = ["Sarjapur Road", "BTM", "Whitefield", "Koramangala 5th Block", "Indiranagar", "Malleshwaram", "Brigade Road", "Marathahalli", "JP Nagar", "Basavanagudi", "Rajajinagar", "Vasanth Nagar", "Kalyan Nagar", "Old Airport Road", "HSR", "Cunningham Road", "Residency Road", "New BEL Road", "Koramangala 1st Block", "Koramangala 7th Block", "Banashankari", "Electronic City", "Koramangala 4th Block", "Lavelle Road", "MG Road", "Church Street", "Richmond Road", "Bellandur", "St. Marks Road", "ITPL Main Road, Whitefield", "Jayanagar", "Seshadripuram", "Bannerghatta Road", "Race Course Road", "Nagawara", "Koramangala 6th Block", "Ulsoor", "Hennur", "Kammanahalli", "City Market", "Brookefield", "Varthur Main Road, Whitefield", "Frazer Town", "Sadashiv Nagar", "Basaveshwara Nagar", "Thippasandra", "Koramangala 3rd Block", "Banaswadi", "Koramangala", "Koramangala 8th Block", "Sahakara Nagar", "Domlur", "Infantry Road", "Shanti Nagar", "Sankey Road", "Vijay Nagar", "Jeevan Bhima Nagar", "Majestic", "HBR Layout", "Yeshwantpur", "Koramangala 2nd Block", "Commercial Street", "Hosur Road", "Shivajinagar", "Kumaraswamy Layout", "Old Madras Road", "Sanjay Nagar", "RT Nagar", "Kaggadasapura", "Ejipura", "CV Raman Nagar", "Wilson Garden", "Rajarajeshwari Nagar", "Hebbal", "Bommanahalli", "Langford Town", "Magadi Road", "Rammurthy Nagar", "Yelahanka", "Jalahalli", "KR Puram", "South Bangalore", "East Bangalore", "Kanakapura Road", "Mysore Road", "Kengeri", "Uttarahalli", "Central Bangalore", "North Bangalore", "West Bangalore", "Nagarbhavi", "Peenya"]
@@ -106,37 +120,60 @@ if search_button:
     else:
         with st.spinner("Curating your personalized recommendations..."):
             try:
-                # Call recommendation logic
-                results = get_recommendations(
-                    area=area,
-                    budget_inr=budget,
-                    cuisine=cuisine,
-                    min_rating=min_rating,
-                    notes=notes,
-                    top_n=5
-                )
-                
-                if not results:
-                    st.info("No perfect matches found for these exact criteria. Try broadening your search!")
-                else:
-                    st.success(f"Found {len(results)} matches for you!")
+                df = get_df()
+                if df is not None:
+                    prefs = UserPrefs(
+                        area=area,
+                        budget_inr=budget,
+                        cuisine=cuisine,
+                        min_rating=min_rating,
+                        notes=notes,
+                        top_n=5
+                    )
                     
-                    for r in results:
-                        with st.container():
-                            st.markdown(f"""
-                            <div class="restaurant-card">
-                                <div style="display: flex; justify-content: space-between; align-items: start;">
-                                    <h3 style="margin: 0; color: #111827;">{r['name']}</h3>
-                                    <span class="rating-badge">⭐ {r['rating']}</span>
+                    # 1. Retrieval
+                    shortlist = shortlist_from_df(df, prefs, k=40)
+                    
+                    if not shortlist:
+                        st.info("No perfect matches found for these exact criteria. Try broadening your search!")
+                    else:
+                        # 2. Reranking
+                        llm_config = load_llm_config()
+                        results = None
+                        
+                        if llm_config:
+                            try:
+                                results, _ = rerank_with_llm(prefs=prefs, candidates=shortlist, config=llm_config)
+                            except Exception as e:
+                                st.warning(f"LLM reranking failed, using smart fallback. Error: {e}")
+                        
+                        if not results:
+                            results = deterministic_results(df, prefs)
+                            results = results[:5]
+
+                        st.success(f"Found {len(results)} matches for you!")
+                        
+                        for r in results:
+                            with st.container():
+                                # Handle missing keys safely
+                                res_rating = r.get('rating', 0.0)
+                                res_cuisines = r.get('cuisines', [])
+                                res_reason = r.get('reason', 'Matching restaurant found based on your preferences.')
+                                
+                                st.markdown(f"""
+                                <div class="restaurant-card">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <h3 style="margin: 0; color: #111827;">{r['name']}</h3>
+                                        <span class="rating-badge">⭐ {res_rating}</span>
+                                    </div>
+                                    <div style="margin-top: 0.5rem;">
+                                        {" ".join([f'<span class="cuisine-tag">{c}</span>' for c in res_cuisines])}
+                                    </div>
+                                    <p style="margin-top: 1rem; color: #4B5563; font-style: italic; line-height: 1.5;">
+                                        "{res_reason}"
+                                    </p>
                                 </div>
-                                <div style="margin-top: 0.5rem;">
-                                    {" ".join([f'<span class="cuisine-tag">{c}</span>' for c in r['cuisines']])}
-                                </div>
-                                <p style="margin-top: 1rem; color: #4B5563; font-style: italic; line-height: 1.5;">
-                                    "{r['reason']}"
-                                </p>
-                            </div>
-                            """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
                             
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
