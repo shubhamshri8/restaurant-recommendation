@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/user-prefs.schema.json",
+  "title": "UserPrefs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["area", "budget_inr", "cuisine", "min_rating"],
+  "properties": {
+    "area": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bangalore area/locality (dataset scope is Bangalore)."
+    },
+    "budget_inr": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Approximate budget for two (INR)."
+    },
+    "cuisine": {
+      "type": "string",
+      "minLength": 1
+    },
+    "min_rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text preferences (e.g., family-friendly, quick service)."
+    },
+    "top_n": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 5
+    }
+  }
+}
+

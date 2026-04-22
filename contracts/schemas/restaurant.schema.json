@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/restaurant.schema.json",
+  "title": "Restaurant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "city", "cuisines", "aggregate_rating"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "city": { "type": "string", "minLength": 1 },
+    "area": { "type": "string" },
+    "lat": { "type": "number" },
+    "lng": { "type": "number" },
+    "cuisines": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "avg_cost_for_two_inr": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Normalized to INR where available."
+    },
+    "budget_bucket": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Derived; primarily for coarse filtering and analytics."
+    },
+    "aggregate_rating": { "type": "number", "minimum": 0, "maximum": 5 },
+    "votes": { "type": "integer", "minimum": 0 },
+    "tags": {
+      "type": "object",
+      "additionalProperties": { "type": ["boolean", "string", "number", "null"] }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dataset_name": { "type": "string" },
+        "dataset_version": { "type": "string" },
+        "raw_row_id": { "type": ["string", "number"] }
+      }
+    },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}
+

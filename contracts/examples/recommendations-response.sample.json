@@ -1,0 +1,24 @@
+{
+  "request_id": "req_01J0EXAMPLE",
+  "results": [
+    {
+      "restaurant_id": "rest_123",
+      "name": "Trattoria Verde",
+      "cuisines": ["Italian"],
+      "rating": 4.3,
+      "estimated_cost": 1100,
+      "reason": "Matches your Italian preference in Bangalore, stays close to your ₹1200 budget for two, and exceeds your 4.0 minimum rating.",
+      "match_signals": ["cuisine:Italian", "rating>=4.0", "budget≈1200", "location:Bangalore"]
+    },
+    {
+      "restaurant_id": "rest_456",
+      "name": "Pasta & Co.",
+      "cuisines": ["Italian", "Desserts"],
+      "rating": 4.1,
+      "estimated_cost": "N/A",
+      "reason": "Good fit for Italian with dessert options; rating clears your threshold. Cost isn’t available, so treat budget fit as uncertain.",
+      "match_signals": ["cuisine:Italian", "rating>=4.0", "location:Bangalore", "cost:missing"]
+    }
+  ]
+}
+

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/recommendations-response.schema.json",
+  "title": "RecommendationsResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request_id", "results"],
+  "properties": {
+    "request_id": { "type": "string", "minLength": 1 },
+    "results": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["restaurant_id", "name", "cuisines", "rating", "estimated_cost", "reason"],
+        "properties": {
+          "restaurant_id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "cuisines": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1
+          },
+          "rating": { "type": "number", "minimum": 0, "maximum": 5 },
+          "estimated_cost": {
+            "description": "Usually avg cost for two (INR). Can be 'N/A' if missing.",
+            "oneOf": [
+              { "type": "number", "minimum": 0 },
+              { "type": "string" }
+            ]
+          },
+          "reason": { "type": "string", "minLength": 1 },
+          "match_signals": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
+
