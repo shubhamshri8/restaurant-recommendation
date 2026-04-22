@@ -1,0 +1,43 @@
+{
+  "dataset_name": "ManikaSaini/zomato-restaurant-recommendation",
+  "created_at": "2026-04-19T15:26:59.356965+00:00",
+  "rows_raw": 51717,
+  "rows_written": 9240,
+  "missing_city": 0,
+  "missing_name": 0,
+  "missing_rating": 10052,
+  "missing_cost": 7263,
+  "columns_in": [
+    "url",
+    "address",
+    "name",
+    "online_order",
+    "book_table",
+    "rate",
+    "votes",
+    "phone",
+    "location",
+    "rest_type",
+    "dish_liked",
+    "cuisines",
+    "approx_cost(for two people)",
+    "reviews_list",
+    "menu_item",
+    "listed_in(type)",
+    "listed_in(city)"
+  ],
+  "columns_out": [
+    "id",
+    "name",
+    "city",
+    "area",
+    "cuisines",
+    "avg_cost_for_two_inr",
+    "budget_bucket",
+    "aggregate_rating",
+    "votes",
+    "tags",
+    "source",
+    "updated_at"
+  ]
+}
